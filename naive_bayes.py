@@ -14,8 +14,11 @@ from itertools import chain
 # The main function.
 def main():
     print("-- AIT726 Homework 1 from Julia Jeng, Shu Wang, and Arman Anwar --")
-    # CreateVocabulary()
-    train = np.load('./tmp/Train.npz', allow_pickle=True)
+    CreateVocabulary()
+
+    # debug following
+    dataset = 'Train'
+    train = np.load('./tmp/'+dataset+'.npz', allow_pickle=True)
     lstem = 0
     if 1 == lstem:
         data = train['dataTrainStem'][0]
