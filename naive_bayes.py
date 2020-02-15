@@ -1,7 +1,10 @@
-# Author: Julia Jeng, Shu Wang, Arman Anwar
-# Description: AIT 726 Homework 1
-# Command to run the file:
-# python naive_bayes.py
+'''
+  Author: Julia Jeng, Shu Wang, Arman Anwar
+  Description: AIT 726 Homework 1
+  Usage: Put file 'naive_bayes.py' and folder 'twitter' in the same folder.
+  Command to run:
+      python naive_bayes.py
+'''
 
 import os
 import re
@@ -31,18 +34,27 @@ def main():
     if os.path.exists(logPath):
         os.remove(logPath)
     sys.stdout = Logger(logPath)
+
     print("-- AIT726 Homework 1 from Julia Jeng, Shu Wang, and Arman Anwar --")
     # create the vocabulary.
     CreateVocabulary()
     # run demo.
     DemoNaiveBayes('noStem', 'freq')
     DemoNaiveBayes('noStem', 'bin')
+    DemoNaiveBayes('noStem', 'tfidf')
     DemoNaiveBayes('Stem', 'freq')
     DemoNaiveBayes('Stem', 'bin')
+    DemoNaiveBayes('Stem', 'tfidf')
     return
 
 # a demo of naive bayes classifier with different dataset and features.
 def DemoNaiveBayes(lStem = 'noStem', method = 'freq'):
+    '''
+    a demo of naive bayes classifier with different dataset and features.
+    :param lStem: stem setting - 'noStem', 'Stem'
+    :param method: feature selection - 'freq', 'bin', 'tfidf'
+    :return: none
+    '''
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
@@ -50,6 +62,7 @@ def DemoNaiveBayes(lStem = 'noStem', method = 'freq'):
     if method not in ['freq', 'bin', 'tfidf']:
         print('Error: method setting invalid!')
         return
+
     # extract training features with 'method' on 'lStem' dataset.
     featTrain = ExtractFeatures('Train', lStem, method)
     # get the model parameters.
@@ -65,6 +78,10 @@ def DemoNaiveBayes(lStem = 'noStem', method = 'freq'):
 
 # Read train/test sets and create vocabulary.
 def CreateVocabulary():
+    '''
+    read train and test sets and create vocabulary.
+    :return: none
+    '''
     # pre-process the data.
     def Preprocess(data):
         # remove url
@@ -85,6 +102,7 @@ def CreateVocabulary():
         pattern = r'[@#]([A-Za-z]+)'
         data = re.sub(pattern, '', data)
         return data
+
     # get tokens.
     def GetTokens(data):
         # use tweet tokenizer.
@@ -98,6 +116,7 @@ def CreateVocabulary():
                 tokens.remove(tk)
                 tokens = tokens + subtokens
         return tokens
+
     # process tokens with stemming.
     def WithStem(tokens):
         porter = PorterStemmer()
@@ -105,9 +124,11 @@ def CreateVocabulary():
         for tk in tokens:
             tokensStem.append(porter.stem(tk))
         return tokensStem
+
     # if there is no 'tmp' folder, create one.
     if not os.path.exists('./tmp/'):
         os.mkdir('./tmp/')
+
     # read the training data.
     labelTrain = []
     dataTrain = []
@@ -137,12 +158,14 @@ def CreateVocabulary():
             # print(tokensStem)
     print('Load TrainSet: %d/%d positive/negative samples.' % (sum(labelTrain), len(labelTrain)-sum(labelTrain)))
     np.savez('tmp/Train.npz', labelTrain = labelTrain, dataTrain = dataTrain, dataTrainStem = dataTrainStem)
+
     # build the vocabulary from training set.
     vocab = list(set(list(chain.from_iterable(dataTrain))))
     vocabStem = list(set(list(chain.from_iterable(dataTrainStem))))
     print('Vocabulary: %d items.' % len(vocab))
     print('Vocabulary (stem): %d items.' % len(vocabStem))
     np.savez('tmp/Vocab.npz', vocab = vocab, vocabStem = vocabStem)
+
     # read the testing data.
     labelTest = []
     dataTest = []
@@ -176,6 +199,13 @@ def CreateVocabulary():
 
 # extract features for a 'dataset' with or without 'stem' using 'method'
 def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
+    '''
+    extract features for a 'dataset' with or without 'stem' using 'method'
+    :param dataset: dataset type - 'Train', 'Test'
+    :param lStem: stem setting - 'noStem', 'Stem'
+    :param method: feature selection - 'freq', 'bin', 'tfidf'
+    :return: features - D * V
+    '''
     # input validation.
     if dataset not in ['Train', 'Test']:
         print('Error: dataset input invalid!')
@@ -186,6 +216,7 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
     if method not in ['freq', 'bin', 'tfidf']:
         print('Error: method setting invalid!')
         return
+
     # sparse the corresponding dataset.
     dset = np.load('./tmp/' + dataset + '.npz', allow_pickle = True)
     if 'Stem' == lStem:
@@ -201,7 +232,7 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
         vocab = vset['vocab']
     V = len(vocab)
     vocabDict = dict(zip(vocab, range(V)))
-    # print(vocabDict)
+
     # get the feature matrix (freq).
     if 'freq' == method:
         features = np.zeros((D, V))
@@ -209,7 +240,7 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
         for doc in data:
             for item in doc:
                 if item in vocabDict:
-                    features[ind, vocabDict[item]] += 1
+                    features[ind][vocabDict[item]] += 1
             ind += 1
         return features
     # get the feature matrix (bin).
@@ -219,16 +250,59 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
         for doc in data:
             for item in doc:
                 if item in vocabDict:
-                    features[ind, vocabDict[item]] = 1
+                    features[ind][vocabDict[item]] = 1
             ind += 1
         return features
     # get the feature matrix (tfidf):
     if 'tfidf' == method:
-        return
+        # get freq and bin features.
+        termFreq = np.zeros((D, V))
+        termBin = np.zeros((D, V))
+        for ind, doc in enumerate(data):
+            for item in doc:
+                if item in vocabDict:
+                    termFreq[ind][vocabDict[item]] += 1
+                    termBin[ind][vocabDict[item]] = 1
+        # get tf (1+log10)
+        tf = np.zeros((D, V))
+        for ind in range(D):
+            for i in range(V):
+                if termFreq[ind][i] > 0:
+                    tf[ind][i] = 1 + math.log(termFreq[ind][i], 10)
+        del termFreq
+        # find idf
+        if 'Train' == dataset:
+            # get df
+            df = np.zeros((V, 1))
+            for ind in range(D):
+                for i in range(V):
+                    df[i] += termBin[ind][i]
+            # get idf (log10(D/df))
+            idf = np.zeros((V, 1))
+            for i in range(V):
+                if df[i] > 0:
+                    idf[i] = math.log(D, 10) - math.log(df[i], 10)
+            del df
+            np.save('./tmp/idf.npy', idf)
+        else:
+            # if 'Test' == dataset, get idf from arguments.
+            idf = np.load('./tmp/idf.npy')
+        del termBin
+        # get tfidf
+        tfidf = np.zeros((D, V))
+        for ind in range(D):
+            for i in range(V):
+                tfidf[ind][i] = tf[ind][i] * idf[i]
+        return tfidf
     return
 
 # train the naive bayes model.
 def TrainNaiveBayes(features):
+    '''
+    train the naive bayes model.
+    :param features: training set features
+    :return: model parameters - prior, likelihood
+    '''
     # define the log prior.
     def GetLogPrior(labelTrain):
         # count the number.
@@ -240,6 +314,7 @@ def TrainNaiveBayes(features):
         priorNag = math.log(nNag / nDoc)
         prior = [priorNag, priorPos]
         return prior
+
     # define loglikelihood.
     def GetLogLikelihood(features, labelTrain):
         # get V and D.
@@ -260,6 +335,7 @@ def TrainNaiveBayes(features):
                 likelihood[lb][i] /= denom[lb]
                 likelihood[lb][i] = math.log(likelihood[lb][i])
         return likelihood
+
     # sparse the corresponding label.
     dset = np.load('./tmp/Train.npz', allow_pickle = True)
     labelTrain = dset['labelTrain']
@@ -271,6 +347,13 @@ def TrainNaiveBayes(features):
 
 # test and evaluate the performance.
 def TestNaiveBayes(prior, likelihood, featTest):
+    '''
+    test and evaluate the performance.
+    :param prior: model parameter
+    :param likelihood: model parameter
+    :param featTest: testing data features
+    :return: evaluations - accuracy, confusion
+    '''
     # get predictions for testing samples with model parameters.
     def GetPredictions(prior, likelihood, featTest):
         # get V and D.
@@ -287,6 +370,7 @@ def TestNaiveBayes(prior, likelihood, featTest):
                     pred[ind][lb] += likelihood[lb][i] * featTest[ind][i]
             predictions[ind] = list(pred[ind]).index(max(pred[ind]))
         return predictions
+
     # evaluate the predictions with gold labels, and get accuracy and confusion matrix.
     def Evaluation(predictions):
         # sparse the corresponding label.
@@ -306,6 +390,7 @@ def TestNaiveBayes(prior, likelihood, featTest):
             accuracy += confusion[ind][ind]
         accuracy /= D
         return accuracy, confusion
+
     # get predictions for testing samples.
     predictions = GetPredictions(prior, likelihood, featTest)
     # get accuracy and confusion matrix.
@@ -314,6 +399,14 @@ def TestNaiveBayes(prior, likelihood, featTest):
 
 # output the results.
 def OutputNaiveBayes(accuracy, confusion, lStem = 'noStem', method = 'freq'):
+    '''
+    output the results to screen and file.
+    :param accuracy: accuracy - 1x1
+    :param confusion: confusion - 2x2
+    :param lStem: stem setting - 'noStem', 'Stem'
+    :param method: feature selection - 'freq', 'bin', 'tfidf'
+    :return: none
+    '''
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
@@ -321,6 +414,7 @@ def OutputNaiveBayes(accuracy, confusion, lStem = 'noStem', method = 'freq'):
     if method not in ['freq', 'bin', 'tfidf']:
         print('Error: method setting invalid!')
         return
+
     # output on screen and to file.
     print('-------------------------------------------')
     print('naive bayes | ' + lStem + ' | ' + method)
