@@ -10,8 +10,6 @@ Load TestSet: 1182/3000 positive/negative samples.
 
 ## Naive Bayes Classifier
 
--------------------------------------------
-
 naive bayes | noStem | freq
 
 accuracy : 89.43%
