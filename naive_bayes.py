@@ -5,6 +5,7 @@
 
 import os
 import re
+import sys
 import math
 import numpy as np
 from nltk.tokenize import TweetTokenizer
@@ -12,16 +13,55 @@ from nltk import word_tokenize
 from nltk.stem import PorterStemmer
 from itertools import chain
 
+# Logger: redirect the stream on screen and to file.
+class Logger(object):
+    def __init__(self, filename = "log.txt"):
+        self.terminal = sys.stdout
+        self.log = open(filename, "a")
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)
+    def flush(self):
+        pass
+
 # The main function.
 def main():
+    # initialize the log file.
+    logPath = './naive_bayes.txt'
+    if os.path.exists(logPath):
+        os.remove(logPath)
+    sys.stdout = Logger(logPath)
     print("-- AIT726 Homework 1 from Julia Jeng, Shu Wang, and Arman Anwar --")
-    #CreateVocabulary()
-    featTrain = ExtractFeatures('Train', 'noStem', 'freq')
-    prior, likelihood = TrainNaiveBayes(featTrain)
-    # debug following
-    print(prior)
-    print(likelihood)
+    # create the vocabulary.
+    CreateVocabulary()
+    # run demo.
+    DemoNaiveBayes('noStem', 'freq')
+    DemoNaiveBayes('noStem', 'bin')
+    DemoNaiveBayes('Stem', 'freq')
+    DemoNaiveBayes('Stem', 'bin')
+    return
 
+# a demo of naive bayes classifier with different dataset and features.
+def DemoNaiveBayes(lStem = 'noStem', method = 'freq'):
+    # input validation.
+    if lStem not in ['noStem', 'Stem']:
+        print('Error: stem setting invalid!')
+        return
+    if method not in ['freq', 'bin', 'tfidf']:
+        print('Error: method setting invalid!')
+        return
+    # extract training features with 'method' on 'lStem' dataset.
+    featTrain = ExtractFeatures('Train', lStem, method)
+    # get the model parameters.
+    prior, likelihood = TrainNaiveBayes(featTrain)
+    # extract testing features with 'method' on 'lStem' dataset.
+    featTest = ExtractFeatures('Test', lStem, method)
+    # get testing predictions using model parameters.
+    accuracy, confusion = TestNaiveBayes(prior, likelihood, featTest)
+    # output the results on screen and to files.
+    OutputNaiveBayes(accuracy, confusion, lStem, method)
+    # debug
+    return
 
 # Read train/test sets and create vocabulary.
 def CreateVocabulary():
@@ -165,22 +205,22 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
     # get the feature matrix (freq).
     if 'freq' == method:
         features = np.zeros((D, V))
-        index = 0
+        ind = 0
         for doc in data:
             for item in doc:
                 if item in vocabDict:
-                    features[index, vocabDict[item]] += 1
-            index += 1
+                    features[ind, vocabDict[item]] += 1
+            ind += 1
         return features
     # get the feature matrix (bin).
     if 'bin' == method:
         features = np.zeros((D, V))
-        index = 0
+        ind = 0
         for doc in data:
             for item in doc:
                 if item in vocabDict:
-                    features[index, vocabDict[item]] = 1
-            index += 1
+                    features[ind, vocabDict[item]] = 1
+            ind += 1
         return features
     # get the feature matrix (tfidf):
     if 'tfidf' == method:
@@ -228,6 +268,69 @@ def TrainNaiveBayes(features):
     # get the log likelihood
     likelihood = GetLogLikelihood(features, labelTrain)
     return prior, likelihood
+
+# test and evaluate the performance.
+def TestNaiveBayes(prior, likelihood, featTest):
+    # get predictions for testing samples with model parameters.
+    def GetPredictions(prior, likelihood, featTest):
+        # get V and D.
+        V = len(featTest[0])
+        D = len(featTest)
+        cls = 2
+        # get pred(D, cls) matrix and predictions(D, 1).
+        pred = np.zeros((D, cls))
+        predictions = np.zeros((D, 1))
+        for ind in range(D):
+            for lb in range(cls):
+                pred[ind][lb] += prior[lb]
+                for i in range(V):
+                    pred[ind][lb] += likelihood[lb][i] * featTest[ind][i]
+            predictions[ind] = list(pred[ind]).index(max(pred[ind]))
+        return predictions
+    # evaluate the predictions with gold labels, and get accuracy and confusion matrix.
+    def Evaluation(predictions):
+        # sparse the corresponding label.
+        dset = np.load('./tmp/Test.npz', allow_pickle = True)
+        labelTest = dset['labelTest']
+        D = len(labelTest)
+        cls = 2
+        # get confusion matrix.
+        confusion = np.zeros((cls, cls))
+        for ind in range(D):
+            nRow = int(predictions[ind])
+            nCol = int(labelTest[ind])
+            confusion[nRow][nCol] += 1
+        # get accuracy.
+        accuracy = 0
+        for ind in range(cls):
+            accuracy += confusion[ind][ind]
+        accuracy /= D
+        return accuracy, confusion
+    # get predictions for testing samples.
+    predictions = GetPredictions(prior, likelihood, featTest)
+    # get accuracy and confusion matrix.
+    accuracy, confusion = Evaluation(predictions)
+    return accuracy, confusion
+
+# output the results.
+def OutputNaiveBayes(accuracy, confusion, lStem = 'noStem', method = 'freq'):
+    # input validation.
+    if lStem not in ['noStem', 'Stem']:
+        print('Error: stem setting invalid!')
+        return
+    if method not in ['freq', 'bin', 'tfidf']:
+        print('Error: method setting invalid!')
+        return
+    # output on screen and to file.
+    print('-------------------------------------------')
+    print('naive bayes | ' + lStem + ' | ' + method)
+    print('accuracy : %.2f%%' % (accuracy * 100))
+    print('confusion matrix :      (actual)')
+    print('                    Neg         Pos')
+    print('(predicted) Neg     %-4d(TN)    %-4d(FN)' % (confusion[0][0], confusion[0][1]))
+    print('            Pos     %-4d(FP)    %-4d(TP)' % (confusion[1][0], confusion[1][1]))
+    print('-------------------------------------------')
+    return
 
 # The program entrance.
 if __name__ == "__main__":
