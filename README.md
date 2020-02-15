@@ -3,9 +3,13 @@
 ## Naive Bayes Classifier
 
 Load TrainSet: 1181/3000 positive/negative samples.
+
 Vocabulary: 6666 items.
+
 Vocabulary (stem): 5106 items.
+
 Load TestSet: 1182/3000 positive/negative samples.
+
 -------------------------------------------
 naive bayes | noStem | freq
 accuracy : 89.43%
