@@ -12,10 +12,15 @@ Load TestSet: 1182/3000 positive/negative samples.
 
 -------------------------------------------
 naive bayes | noStem | freq
+
 accuracy : 89.43%
+
 confusion matrix :      (actual)
+
                     Neg         Pos
+                    
 (predicted) Neg     2896(TN)    338 (FN)
+
             Pos     104 (FP)    844 (TP)
 -------------------------------------------
 -------------------------------------------
