@@ -46,7 +46,7 @@ confusion matrix :      (actual)
 -------------------------------------------
 naive bayes | Stem | tfidf
 accuracy : 87.97%
-confusion matrix :      (actual)
+confusion matrix :      (actual) 
                     Neg         Pos
 (predicted) Neg     2779(TN)    282 (FN)
             Pos     221 (FP)    900 (TP)
