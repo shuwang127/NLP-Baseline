@@ -2,7 +2,7 @@
   Author: Julia Jeng, Shu Wang, Arman Anwar
   Description: AIT 726 Homework 1
   Usage: Put file 'naive_bayes.py' and folder 'twitter' in the same folder.
-  Command to run:
+  Command to run: 
       python naive_bayes.py
 '''
 
