@@ -39,13 +39,32 @@ def main():
 
     print("-- AIT726 Homework 1 from Julia Jeng, Shu Wang, and Arman Anwar --")
     # create the vocabulary.
-    #CreateVocabulary()
+    CreateVocabulary()
     # run demo.
-    DemoLogistic('noStem', 'freq', 'none')
+    DemoLogistic('noStem', 'freq', 'noReg')
+    DemoLogistic('noStem', 'bin', 'noReg')
+    DemoLogistic('noStem', 'tfidf', 'noReg')
+    DemoLogistic('Stem', 'freq', 'noReg')
+    DemoLogistic('Stem', 'bin', 'noReg')
+    DemoLogistic('Stem', 'tfidf', 'noReg')
+    # Bonus
+    DemoLogistic('noStem', 'freq', 'L2')
+    DemoLogistic('noStem', 'bin', 'L2')
+    DemoLogistic('noStem', 'tfidf', 'L2')
+    DemoLogistic('Stem', 'freq', 'L2')
+    DemoLogistic('Stem', 'bin', 'L2')
+    DemoLogistic('Stem', 'tfidf', 'L2')
     return
 
 # a demo of logistic regression classifier with different dataset, features, regularization.
 def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'noReg'):
+    '''
+    a demo of logistic regression classifier with different dataset, features, regularization.
+    :param lStem: stem setting - 'noStem', 'Stem'
+    :param method: feature selection - 'freq', 'bin', 'tfidf'
+    :param regularize: regularization selection - 'noReg', 'L2'
+    :return: none
+    '''
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
@@ -58,18 +77,14 @@ def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'noReg'):
         return
 
     # extract training features with 'method' on 'lStem' dataset.
-    #featTrain = ExtractFeatures('Train', lStem, method)
-    #np.save('./tmp/featTrain.npy', featTrain)
-    featTrain = np.load('./tmp/featTrain.npy')
+    featTrain = ExtractFeatures('Train', lStem, method)
     # get the model parameters.
     if regularize == 'noReg':
         w, b = TrainLogistic(featTrain)
     else:
         w, b = TrainLogisticL2(featTrain)
     # extract testing features with 'method' on 'lStem' dataset.
-    #featTest = ExtractFeatures('Test', lStem, method)
-    #np.save('./tmp/featTest.npy', featTest)
-    featTest = np.load('./tmp/featTest.npy')
+    featTest = ExtractFeatures('Test', lStem, method)
     # get testing predictions using model parameters.
     accuracy, confusion = TestLogistic(w, b, featTest)
     # output the results on screen and to files.
@@ -299,6 +314,13 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
 
 # forward propagation of logistic regression for a single sample.
 def ForwardLogistic(w, b, x):
+    '''
+    forward propagation for a sample using model parameters.
+    :param w: weights
+    :param b: bias
+    :param x: a sample
+    :return: [0,1] probability
+    '''
     # get w*x+b
     d = {'w': w, 'x': x}
     df = pd.DataFrame(data = d)
@@ -310,6 +332,13 @@ def ForwardLogistic(w, b, x):
 
 # prediction of logistic regression for a single sample.
 def PredictLogistic(w, b, x):
+    '''
+    predict for a sample using model parameters.
+    :param w: weights
+    :param b: bias
+    :param x: a sample
+    :return: 0 or 1
+    '''
     yhat = ForwardLogistic(w, b, x)
     if yhat > 0.5:
         pred = 1
@@ -318,7 +347,14 @@ def PredictLogistic(w, b, x):
     return pred
 
 # train the logistic regression model.
-def TrainLogistic(featTrain, rate = 0.5, iternum = 10000):
+def TrainLogistic(featTrain, rate = 0.1, iternum = 30000):
+    '''
+    train the logistic regression model.
+    :param featTrain: training set features
+    :param rate: learning rate
+    :param iternum: maximum iteration number
+    :return: model parameters - w, b
+    '''
     # update w, b
     def UpdateWeight(w, b, x, deltay):
         # update w
@@ -329,6 +365,7 @@ def TrainLogistic(featTrain, rate = 0.5, iternum = 10000):
         # update b
         b = b - rate * deltay
         return w, b
+
     # get the cross-entropy loss function.
     def CrossEntropy(w, b, labelTrain):
         loss = 0
@@ -340,10 +377,7 @@ def TrainLogistic(featTrain, rate = 0.5, iternum = 10000):
             if 0 == y:
                 loss += - math.log(1-yhat)
             else:
-                if 1 == y:
-                    loss += - math.log(yhat)
-                else:
-                    print('ERROR')
+                loss += - math.log(yhat)
         loss = loss / D
         return loss
 
@@ -362,23 +396,62 @@ def TrainLogistic(featTrain, rate = 0.5, iternum = 10000):
     # train the model
     for iter in range(iternum):
         # debug per 1000 iterations.
-        if 0 == (iter % 1000): # output_iteration
+        if 0 == (iter % 5000): # output_iteration
             loss = CrossEntropy(w, b, labelTrain)
-            print('iter %05d : loss %.5f' % (iter, loss))
-            if loss < 0.01: # threshold
+            # print('iter %05d : loss %.4f' % (iter, loss))
+            if loss < 0.05: # threshold
                 return w, b
         # select a sample randomly.
-        ind = random.randint(0, D-1)
+        ind = random.randint(0, D - 1)
         x = featTrain[ind]
         # calculate yhat and y.
         yhat = ForwardLogistic(w, b, x)
         y = labelTrain[ind]
         # update model parameters.
-        w, b = UpdateWeight(w, b, x, yhat-y)
+        w, b = UpdateWeight(w, b, x, yhat - y)
     return w, b
 
 # train the logistic regression model with L2 regularization.
-def TrainLogisticL2(featTrain, rate = 0.2, iternum = 10000):
+def TrainLogisticL2(featTrain, rate = 0.1, iternum = 30000, alpha = 1):
+    '''
+    train the logistic regression model with L2 regularization.
+    :param featTrain: training set features
+    :param rate: learning rate
+    :param iternum: maximum iteration number
+    :param alpha: regularization hyper-parameter
+    :return: model parameters - w, b
+    '''
+    # update w, b
+    def UpdateWeightL2(w, b, x, deltay):
+        # update w
+        dt = {'w': w, 'x': x}
+        df = pd.DataFrame(data = dt)
+        D = len(featTrain)
+        df['wnew'] = df['w'] - rate * (deltay * df['x'] + alpha * df['w'] / D)
+        w = df['wnew'].values.tolist()
+        # update b
+        b = b - rate * deltay
+        return w, b
+
+    # get the cross-entropy loss function.
+    # J(w) = (-1/m)*sum(ylog(yhat)+(1-y)log(1-yhat)) + (alpha/(2m))*sum(w^2)
+    def CrossEntropyL2(w, b, labelTrain):
+        loss = 0
+        D = len(featTrain)
+        V = len(featTrain[0])
+        for ind in range(D):
+            x = featTrain[ind]
+            yhat = ForwardLogistic(w, b, x)
+            y = labelTrain[ind]
+            if 0 == y:
+                loss += - math.log(1-yhat)
+            else:
+                loss += - math.log(yhat)
+        loss = loss / D
+        for i in range(V):
+            loss += alpha * w[i] * w[i] / (2 * D)
+        return loss
+
     # print the parameters.
     print('para: learningrate = %.2f, iternum = %d' % (rate, iternum))
     # get V and D.
@@ -391,10 +464,33 @@ def TrainLogisticL2(featTrain, rate = 0.2, iternum = 10000):
     # initialize the weights and bias.
     w = np.zeros(V)
     b = 0
+    # train the model
+    for iter in range(iternum):
+        # debug per 1000 iterations.
+        if 0 == (iter % 5000):  # output_iteration
+            loss = CrossEntropyL2(w, b, labelTrain)
+            # print('iter %05d : loss %.4f' % (iter, loss))
+            if loss < 0.05:  # threshold
+                return w, b
+        # select a sample randomly.
+        ind = random.randint(0, D - 1)
+        x = featTrain[ind]
+        # calculate yhat and y.
+        yhat = ForwardLogistic(w, b, x)
+        y = labelTrain[ind]
+        # update model parameters.
+        w, b = UpdateWeightL2(w, b, x, yhat - y)
     return w, b
 
 # test and evaluate the performance.
 def TestLogistic(w, b, featTest):
+    '''
+    test and evaluate the performance.
+    :param w: model parameter
+    :param b: model parameter
+    :param featTest: testing data features
+    :return: evaluations - accuracy, confusion
+    '''
     # get predictions for testing samples with model parameters.
     def GetPredictions(w, b, featTest):
         D = len(featTest)
@@ -431,6 +527,15 @@ def TestLogistic(w, b, featTest):
 
 # output the results.
 def OutputLogistic(accuracy, confusion, lStem = 'noStem', method = 'freq', regularize = 'noReg'):
+    '''
+    output the results to screen and file.
+    :param accuracy: accuracy - 1x1
+    :param confusion: confusion - 2x2
+    :param lStem: stem setting - 'noStem', 'Stem'
+    :param method: feature selection - 'freq', 'bin', 'tfidf'
+    :param regularize: regularization selection - 'noReg', 'L2'
+    :return: none
+    '''
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
