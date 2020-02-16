@@ -1,0 +1,113 @@
+-- AIT726 Homework 1 from Julia Jeng, Shu Wang, and Arman Anwar --
+Load TrainSet: 1181/3000 positive/negative samples.
+Vocabulary: 6666 items.
+Vocabulary (stem): 5106 items.
+Load TestSet: 1182/3000 positive/negative samples.
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | noStem | freq
+accuracy : 90.00%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2823(TN)    241 (FN)
+            Pos     177 (FP)    941 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | noStem | bin
+accuracy : 89.69%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2798(TN)    229 (FN)
+            Pos     202 (FP)    953 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | noStem | tfidf
+accuracy : 90.17%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2859(TN)    270 (FN)
+            Pos     141 (FP)    912 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | Stem | freq
+accuracy : 89.89%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2875(TN)    298 (FN)
+            Pos     125 (FP)    884 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | Stem | bin
+accuracy : 90.03%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2842(TN)    259 (FN)
+            Pos     158 (FP)    923 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | noReg | Stem | tfidf
+accuracy : 90.15%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2854(TN)    266 (FN)
+            Pos     146 (FP)    916 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | noStem | freq
+accuracy : 90.05%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2866(TN)    282 (FN)
+            Pos     134 (FP)    900 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | noStem | bin
+accuracy : 89.50%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2851(TN)    290 (FN)
+            Pos     149 (FP)    892 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | noStem | tfidf
+accuracy : 90.17%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2833(TN)    244 (FN)
+            Pos     167 (FP)    938 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | Stem | freq
+accuracy : 90.27%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2846(TN)    253 (FN)
+            Pos     154 (FP)    929 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | Stem | bin
+accuracy : 89.91%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2894(TN)    316 (FN)
+            Pos     106 (FP)    866 (TP)
+-------------------------------------------
+para: learningrate = 0.10, iternum = 30000
+-------------------------------------------
+logistic | L2 | Stem | tfidf
+accuracy : 89.43%
+confusion matrix :      (actual)
+                    Neg         Pos
+(predicted) Neg     2777(TN)    219 (FN)
+            Pos     223 (FP)    963 (TP)
+-------------------------------------------
