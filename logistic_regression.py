@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import math
+import random
 import numpy as np
 import pandas as pd
 from nltk.tokenize import TweetTokenizer
@@ -44,7 +45,7 @@ def main():
     return
 
 # a demo of logistic regression classifier with different dataset, features, regularization.
-def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'none'):
+def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'noReg'):
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
@@ -52,7 +53,7 @@ def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'none'):
     if method not in ['freq', 'bin', 'tfidf']:
         print('Error: method setting invalid!')
         return
-    if regularize not in ['none', 'L2']:
+    if regularize not in ['noReg', 'L2']:
         print('Error: regularization setting invalid!')
         return
 
@@ -61,18 +62,18 @@ def DemoLogistic(lStem = 'noStem', method = 'freq', regularize = 'none'):
     #np.save('./tmp/featTrain.npy', featTrain)
     featTrain = np.load('./tmp/featTrain.npy')
     # get the model parameters.
-    if regularize == 'none':
-        TrainLogistic(featTrain)
+    if regularize == 'noReg':
+        w, b = TrainLogistic(featTrain)
     else:
-        TrainLogisticL2(featTrain)
+        w, b = TrainLogisticL2(featTrain)
     # extract testing features with 'method' on 'lStem' dataset.
     #featTest = ExtractFeatures('Test', lStem, method)
     #np.save('./tmp/featTest.npy', featTest)
     featTest = np.load('./tmp/featTest.npy')
     # get testing predictions using model parameters.
-    TestLogistic(0, 0, featTest)
+    accuracy, confusion = TestLogistic(w, b, featTest)
     # output the results on screen and to files.
-    OutputLogistic(0, 0, lStem, method)
+    OutputLogistic(accuracy, confusion, lStem, method, regularize)
     # debug
     return
 
@@ -297,7 +298,7 @@ def ExtractFeatures(dataset = 'Train', lStem = 'noStem', method = 'freq'):
     return
 
 # forward propagation of logistic regression for a single sample.
-def forwardLogistic(w, b, x):
+def ForwardLogistic(w, b, x):
     # get w*x+b
     d = {'w': w, 'x': x}
     df = pd.DataFrame(data = d)
@@ -307,8 +308,47 @@ def forwardLogistic(w, b, x):
     yhat = 1 / (1 + math.exp(-s))
     return yhat
 
+# prediction of logistic regression for a single sample.
+def PredictLogistic(w, b, x):
+    yhat = ForwardLogistic(w, b, x)
+    if yhat > 0.5:
+        pred = 1
+    else:
+        pred = 0
+    return pred
+
 # train the logistic regression model.
-def TrainLogistic(featTrain, rate = 0.1, iternum = 10000):
+def TrainLogistic(featTrain, rate = 0.5, iternum = 10000):
+    # update w, b
+    def UpdateWeight(w, b, x, deltay):
+        # update w
+        d = {'w': w, 'x': x}
+        df = pd.DataFrame(data = d)
+        df['wnew'] = df['w'] - rate * deltay * df['x']
+        w = df['wnew'].values.tolist()
+        # update b
+        b = b - rate * deltay
+        return w, b
+    # get the cross-entropy loss function.
+    def CrossEntropy(w, b, labelTrain):
+        loss = 0
+        D = len(featTrain)
+        for ind in range(D):
+            x = featTrain[ind]
+            yhat = ForwardLogistic(w, b, x)
+            y = labelTrain[ind]
+            if 0 == y:
+                loss += - math.log(1-yhat)
+            else:
+                if 1 == y:
+                    loss += - math.log(yhat)
+                else:
+                    print('ERROR')
+        loss = loss / D
+        return loss
+
+    # print the parameters.
+    print('para: learningrate = %.2f, iternum = %d' % (rate, iternum))
     # get V and D.
     V = len(featTrain[0])
     D = len(featTrain)
@@ -316,56 +356,51 @@ def TrainLogistic(featTrain, rate = 0.1, iternum = 10000):
     dset = np.load('./tmp/Train.npz', allow_pickle = True)
     labelTrain = dset['labelTrain']
 
-    # initiliaze the weights and bias.
+    # initialize the weights and bias.
     w = np.zeros(V)
     b = 0
     # train the model
     for iter in range(iternum):
-        print(iter)
-        
-
-
-    yhat = forwardLogistic(w, b, featTrain[0])
-    print(yhat)
-    return
+        # debug per 1000 iterations.
+        if 0 == (iter % 1000): # output_iteration
+            loss = CrossEntropy(w, b, labelTrain)
+            print('iter %05d : loss %.5f' % (iter, loss))
+            if loss < 0.01: # threshold
+                return w, b
+        # select a sample randomly.
+        ind = random.randint(0, D-1)
+        x = featTrain[ind]
+        # calculate yhat and y.
+        yhat = ForwardLogistic(w, b, x)
+        y = labelTrain[ind]
+        # update model parameters.
+        w, b = UpdateWeight(w, b, x, yhat-y)
+    return w, b
 
 # train the logistic regression model with L2 regularization.
-def TrainLogisticL2(featTrain):
-    return
+def TrainLogisticL2(featTrain, rate = 0.2, iternum = 10000):
+    # print the parameters.
+    print('para: learningrate = %.2f, iternum = %d' % (rate, iternum))
+    # get V and D.
+    V = len(featTrain[0])
+    D = len(featTrain)
+    # sparse the corresponding label.
+    dset = np.load('./tmp/Train.npz', allow_pickle=True)
+    labelTrain = dset['labelTrain']
+
+    # initialize the weights and bias.
+    w = np.zeros(V)
+    b = 0
+    return w, b
 
 # test and evaluate the performance.
 def TestLogistic(w, b, featTest):
-    return
-
-# output the results.
-def OutputLogistic(accuracy, confusion, lStem = 'noStem', method = 'freq'):
-    return
-
-#####################################################################################
-# test and evaluate the performance.
-def TestNaiveBayes(prior, likelihood, featTest):
-    '''
-    test and evaluate the performance.
-    :param prior: model parameter
-    :param likelihood: model parameter
-    :param featTest: testing data features
-    :return: evaluations - accuracy, confusion
-    '''
     # get predictions for testing samples with model parameters.
-    def GetPredictions(prior, likelihood, featTest):
-        # get V and D.
-        V = len(featTest[0])
+    def GetPredictions(w, b, featTest):
         D = len(featTest)
-        cls = 2
-        # get pred(D, cls) matrix and predictions(D, 1).
-        pred = np.zeros((D, cls))
-        predictions = np.zeros((D, 1))
+        predictions = np.zeros(D)
         for ind in range(D):
-            for lb in range(cls):
-                pred[ind][lb] += prior[lb]
-                for i in range(V):
-                    pred[ind][lb] += likelihood[lb][i] * featTest[ind][i]
-            predictions[ind] = list(pred[ind]).index(max(pred[ind]))
+            predictions[ind] = PredictLogistic(w, b, featTest[ind])
         return predictions
 
     # evaluate the predictions with gold labels, and get accuracy and confusion matrix.
@@ -389,21 +424,13 @@ def TestNaiveBayes(prior, likelihood, featTest):
         return accuracy, confusion
 
     # get predictions for testing samples.
-    predictions = GetPredictions(prior, likelihood, featTest)
+    predictions = GetPredictions(w, b, featTest)
     # get accuracy and confusion matrix.
     accuracy, confusion = Evaluation(predictions)
     return accuracy, confusion
 
 # output the results.
-def OutputNaiveBayes(accuracy, confusion, lStem = 'noStem', method = 'freq'):
-    '''
-    output the results to screen and file.
-    :param accuracy: accuracy - 1x1
-    :param confusion: confusion - 2x2
-    :param lStem: stem setting - 'noStem', 'Stem'
-    :param method: feature selection - 'freq', 'bin', 'tfidf'
-    :return: none
-    '''
+def OutputLogistic(accuracy, confusion, lStem = 'noStem', method = 'freq', regularize = 'noReg'):
     # input validation.
     if lStem not in ['noStem', 'Stem']:
         print('Error: stem setting invalid!')
@@ -411,10 +438,13 @@ def OutputNaiveBayes(accuracy, confusion, lStem = 'noStem', method = 'freq'):
     if method not in ['freq', 'bin', 'tfidf']:
         print('Error: method setting invalid!')
         return
+    if regularize not in ['noReg', 'L2']:
+        print('Error: regularization setting invalid!')
+        return
 
     # output on screen and to file.
     print('-------------------------------------------')
-    print('naive bayes | ' + lStem + ' | ' + method)
+    print('logistic | ' + regularize + ' | ' + lStem + ' | ' + method)
     print('accuracy : %.2f%%' % (accuracy * 100))
     print('confusion matrix :      (actual)')
     print('                    Neg         Pos')
